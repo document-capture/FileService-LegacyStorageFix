@@ -353,7 +353,6 @@ codeunit 63052 "DCADV Doc. Blob Storage Mgt."
             exit(false);
 
         TempPage.CalcFields("PNG Data");
-        if not Confirm('Daten: %1', false, TempPage."PNG Data".HasValue) then error('');
         TempPage."PNG Data".CreateInStream(ReadStream);
         Page."PNG Data".CreateOutStream(WriteStream);
         COPYSTREAM(WriteStream, ReadStream);
