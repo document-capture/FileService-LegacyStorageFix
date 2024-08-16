@@ -1,4 +1,4 @@
-table 63050 "DCADV Temp. Document Page"
+table 63050 "DCADV Document Page Blobs"
 {
     fields
     {

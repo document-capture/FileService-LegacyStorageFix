@@ -2,7 +2,7 @@
   "id": "118d5e3a-c105-4227-8c86-5f8e00b64bd0",
   "name": "source",
   "publisher": "Continia Software GmbH",
-  "version": "1.0.0.0",
+  "version": "1.0.0.1",
   "brief": "PTE to support the use of the on-premises OCR of Document Capture together with storage options Database or AzureBlobStorage.",
   "description": "This Per-Tenant-Extension is a proof of concept that can help customers of Document Capture to use the on-premises OCR option together with Database or AzureblobStorage options.",
   "privacyStatement": "",

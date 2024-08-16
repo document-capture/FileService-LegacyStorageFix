@@ -12,25 +12,30 @@ codeunit 63052 "DCADV Doc. Blob Storage Mgt."
         CurrentCompanyName: Text[50];
         Text0001: Label 'Database';
 
-    internal procedure HasTiffFile(var Document: Record "CDC Document"): Boolean
+    internal procedure HasTiffFile(var Document: Record "DCADV Document Blobs"): Boolean
     begin
         Document.CALCFIELDS("TIFF Image File");
         EXIT(Document."TIFF Image File".HASVALUE);
     end;
 
-    internal procedure HasPdfFile(var Document: Record "CDC Document"): Boolean
+    internal procedure HasPdfFile(var Document: Record "DCADV Document Blobs"): Boolean
     begin
         Document.CALCFIELDS("PDF File");
         EXIT(Document."PDF File".HASVALUE);
     end;
 
     internal procedure HasMiscFile(var Document: Record "CDC Document"): Boolean
+    var
+        DocumentBlobs: Record "DCADV Document Blobs";
     begin
         IF Document."File Extension" = '' THEN
             EXIT(FALSE);
 
-        Document.CALCFIELDS("Misc. File");
-        EXIT(Document."Misc. File".HASVALUE);
+        if not DocumentBlobs.Get(Document."No.") then
+            exit;
+
+        DocumentBlobs.CALCFIELDS("Misc. File");
+        EXIT(DocumentBlobs."Misc. File".HASVALUE);
     end;
 
     internal procedure HasEmailFile(EmailGUID: Guid): Boolean
@@ -44,7 +49,7 @@ codeunit 63052 "DCADV Doc. Blob Storage Mgt."
                 EXIT(Email."E-Mail File".HASVALUE);
     end;
 
-    internal procedure HasXmlFile(var Document: Record "CDC Document"): Boolean
+    internal procedure HasXmlFile(var Document: Record "DCADV Document Blobs"): Boolean
     begin
         Document.CALCFIELDS("XML File");
         EXIT(Document."XML File".HASVALUE);
@@ -56,13 +61,13 @@ codeunit 63052 "DCADV Doc. Blob Storage Mgt."
         EXIT(Document."Clean XML File".HASVALUE);
     end;
 
-    internal procedure HasPngFile(var "Page": Record "CDC Document Page"): Boolean
+    internal procedure HasPngFile(var "Page": Record "DCADV Document Page Blobs"): Boolean
     begin
         Page.CALCFIELDS("PNG Data");
         EXIT(Page."PNG Data".HASVALUE);
     end;
 
-    internal procedure HasHtmlFile(var Document: Record "CDC Document"): Boolean
+    internal procedure HasHtmlFile(var Document: Record "DCADV Document Blobs"): Boolean
     begin
         Document.CALCFIELDS("HTML File");
         EXIT(Document."HTML File".HASVALUE);
@@ -127,7 +132,7 @@ codeunit 63052 "DCADV Doc. Blob Storage Mgt."
         Document.MODIFY;
     end;
 
-    internal procedure GetTiffFile(var Document: Record "CDC Document"; var File: Record "CDC Temp File" temporary): Boolean
+    internal procedure GetTiffFile(var Document: Record "DCADV Document Blobs"; var File: Record "CDC Temp File" temporary): Boolean
     var
         ReadStream: InStream;
     begin
@@ -138,8 +143,9 @@ codeunit 63052 "DCADV Doc. Blob Storage Mgt."
         EXIT(Document."TIFF Image File".HASVALUE);
     end;
 
-    internal procedure GetPdfFile(var Document: Record "CDC Document"; var File: Record "CDC Temp File" temporary): Boolean
+    internal procedure GetPdfFile(var Document: Record "DCADV Document Blobs"; var File: Record "CDC Temp File" temporary): Boolean
     var
+        TempDocument: Record "DCADV Document Blobs";
         ReadStream: InStream;
     begin
         Document.CALCFIELDS("PDF File");
@@ -203,7 +209,7 @@ codeunit 63052 "DCADV Doc. Blob Storage Mgt."
         EXIT(Document."Clean XML File".HASVALUE);
     end;
 
-    internal procedure GetPngFile(var "Page": Record "CDC Document Page"; var TempFile: Record "CDC Temp File" temporary): Boolean
+    internal procedure GetPngFile(var "Page": Record "DCADV Document Page Blobs"; var TempFile: Record "CDC Temp File" temporary): Boolean
     var
         ReadStream: InStream;
     begin
@@ -227,43 +233,49 @@ codeunit 63052 "DCADV Doc. Blob Storage Mgt."
         EXIT(Document."HTML File".HASVALUE);
     end;
 
-    internal procedure SetTiffFile(var Document: Record "CDC Document"; var TempFile: Record "CDC Temp File" temporary): Boolean
+    internal procedure SetTiffFile(var DocumentBlobs: Record "DCADV Document Blobs"; var TempFile: Record "CDC Temp File" temporary): Boolean
     var
         ReadStream: InStream;
         WriteStream: OutStream;
     begin
-        CLEAR(Document."TIFF Image File");
+        CLEAR(DocumentBlobs."TIFF Image File");
 
-        Document."TIFF Image File".CREATEOUTSTREAM(WriteStream);
+        DocumentBlobs."TIFF Image File".CREATEOUTSTREAM(WriteStream);
         TempFile.GetDataStream(ReadStream);
         COPYSTREAM(WriteStream, ReadStream);
-        EXIT(Document.MODIFY);
+        EXIT(DocumentBlobs.MODIFY);
     end;
 
-    internal procedure SetPdfFile(var Document: Record "CDC Document"; var TempFile: Record "CDC Temp File" temporary): Boolean
+    internal procedure SetPdfFile(var DocumentBlobs: Record "DCADV Document Blobs"; var TempFile: Record "CDC Temp File" temporary): Boolean
     var
         ReadStream: InStream;
         WriteStream: OutStream;
     begin
-        CLEAR(Document."PDF File");
+        CLEAR(DocumentBlobs."PDF File");
 
-        Document."PDF File".CREATEOUTSTREAM(WriteStream);
+        DocumentBlobs."PDF File".CREATEOUTSTREAM(WriteStream);
         TempFile.GetDataStream(ReadStream);
         COPYSTREAM(WriteStream, ReadStream);
-        EXIT(Document.MODIFY);
+        EXIT(DocumentBlobs.MODIFY);
     end;
 
     internal procedure SetMiscFile(var Document: Record "CDC Document"; var TempFile: Record "CDC Temp File" temporary): Boolean
     var
+        TempDocument: Record "DCADV Document Blobs";
         ReadStream: InStream;
         WriteStream: OutStream;
     begin
         CLEAR(Document."Misc. File");
+        if not TempDocument.Get(Document."No.") then begin
+            TempDocument.Init();
+            TempDocument.Validate("No.", Document."No.");
+            TempDocument.Insert(false);
+        end;
 
-        Document."Misc. File".CREATEOUTSTREAM(WriteStream);
+        TempDocument."Misc. File".CREATEOUTSTREAM(WriteStream);
         TempFile.GetDataStream(ReadStream);
         COPYSTREAM(WriteStream, ReadStream);
-        EXIT(Document.MODIFY);
+        EXIT(TempDocument.MODIFY);
     end;
 
     internal procedure SetEmailFile(var EmailGUID: Guid; var TempFile: Record "CDC Temp File" temporary): Boolean
@@ -293,13 +305,19 @@ codeunit 63052 "DCADV Doc. Blob Storage Mgt."
 
     internal procedure SetXmlFile(var Document: Record "CDC Document"; var TempFile: Record "CDC Temp File" temporary): Boolean
     var
+        TempDocument: Record "DCADV Document Blobs";
         ReadStream: InStream;
         WriteStream: OutStream;
     begin
-        Document."XML File".CREATEOUTSTREAM(WriteStream);
+        if not TempDocument.Get(Document."No.") then begin
+            TempDocument.Init();
+            TempDocument.Validate("No.", Document."No.");
+            TempDocument.Insert(false);
+        end;
+        TempDocument."XML File".CREATEOUTSTREAM(WriteStream);
         TempFile.GetDataStream(ReadStream);
         COPYSTREAM(WriteStream, ReadStream);
-        EXIT(Document.MODIFY);
+        EXIT(TempDocument.MODIFY);
     end;
 
     internal procedure SetCleanXmlFile(var Document: Record "CDC Document"; var TempFile: Record "CDC Temp File" temporary): Boolean
@@ -326,7 +344,7 @@ codeunit 63052 "DCADV Doc. Blob Storage Mgt."
 
     internal procedure SetTempPngFile(DocumentNo: Code[20]; PageNo: Integer; var TempFile: Record "CDC Temp File" temporary): Boolean
     var
-        TempPage: Record "DCADV Temp. Document Page";
+        TempPage: Record "DCADV Document Page Blobs";
         ReadStream: InStream;
         WriteStream: OutStream;
     begin
@@ -343,7 +361,7 @@ codeunit 63052 "DCADV Doc. Blob Storage Mgt."
         EXIT(TempPage.MODIFY);
     end;
 
-    internal procedure MoveTempPngFile(TempPage: Record "DCADV Temp. Document Page"): Boolean
+    internal procedure MoveTempPngFile(TempPage: Record "DCADV Document Page Blobs"): Boolean
     var
         Page: Record "CDC Document Page";
         ReadStream: InStream;
@@ -361,13 +379,19 @@ codeunit 63052 "DCADV Doc. Blob Storage Mgt."
 
     internal procedure SetHtmlFile(var Document: Record "CDC Document"; var TempFile: Record "CDC Temp File" temporary): Boolean
     var
+        TempDocument: Record "DCADV Document Blobs";
         ReadStream: InStream;
         WriteStream: OutStream;
     begin
-        Document."HTML File".CREATEOUTSTREAM(WriteStream);
+        if not TempDocument.Get(Document."No.") then begin
+            TempDocument.Init();
+            TempDocument.Validate("No.", Document."No.");
+            TempDocument.Insert(false);
+        end;
+        TempDocument."HTML File".CREATEOUTSTREAM(WriteStream);
         TempFile.GetDataStream(ReadStream);
         COPYSTREAM(WriteStream, ReadStream);
-        EXIT(Document.MODIFY);
+        EXIT(TempDocument.MODIFY);
     end;
 
     internal procedure GetTiffFileSize(var Document: Record "CDC Document"): Integer
